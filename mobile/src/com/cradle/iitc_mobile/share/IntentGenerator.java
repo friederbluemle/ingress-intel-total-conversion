@@ -151,7 +151,7 @@ public class IntentGenerator {
 
     /**
      * get a list of intents capable of sharing a plain text string
-     * 
+     *
      * @param title
      *            description of the shared string
      * @param text
@@ -178,7 +178,7 @@ public class IntentGenerator {
 
     /**
      * get a list of intents capable of sharing the given content
-     * 
+     *
      * @param uri
      *            URI of a file to share
      * @param type

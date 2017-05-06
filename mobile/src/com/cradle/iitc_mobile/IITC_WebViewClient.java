@@ -237,7 +237,7 @@ public class IITC_WebViewClient extends WebViewClient {
     @Override
     public boolean shouldOverrideUrlLoading(final WebView view, final String url) {
         Uri uri = Uri.parse(url);
-        
+
         if (url.contains("conflogin") || url.contains("ServiceLogin") || url.contains("appengine.google.com")) {
             Log.d("Google login");
             return false;
