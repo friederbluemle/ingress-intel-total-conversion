@@ -59,8 +59,8 @@ dateTimeVersion = time.strftime('%Y%m%d.',utcTime) + time.strftime('%H%M%S',utcT
 resourceUrlBase = settings.get('resourceUrlBase')
 distUrlBase = settings.get('distUrlBase')
 buildMobile = settings.get('buildMobile')
-antOptions = settings.get('antOptions','')
-antBuildFile = settings.get('antBuildFile', 'mobile/build.xml');
+gradleOptions = settings.get('gradleOptions','')
+gradleBuildFile = settings.get('gradleBuildFile', 'mobile/build.gradle');
 
 
 # plugin wrapper code snippets. handled as macros, to ensure that
@@ -257,9 +257,10 @@ if buildMobile:
     if buildMobile not in ['debug','release','copyonly']:
         raise Exception("Error: buildMobile must be 'debug' or 'release' or 'copyonly'")
 
+    mobileDir = 'mobile'
     # compile the user location script
     fn = "user-location.user.js"
-    script = readfile("mobile/plugins/" + fn)
+    script = readfile(os.path.join(mobileDir, 'plugins', fn))
     downloadUrl = distUrlBase and distUrlBase + '/' + fn.replace("\\","/") or 'none'
     updateUrl = distUrlBase and downloadUrl.replace('.user.js', '.meta.js') or 'none'
     script = doReplacements(script, downloadUrl=downloadUrl, updateUrl=updateUrl, pluginName='user-location')
@@ -267,19 +268,20 @@ if buildMobile:
     saveScriptAndMeta(script, outDir, fn)
 
     # copy the IITC script into the mobile folder. create the folder if needed
+    assetsDir = os.path.join(mobileDir, 'app', 'src', 'main', 'assets')
     try:
-        os.makedirs("mobile/assets")
+        os.makedirs(assetsDir)
     except:
         pass
-    shutil.copy(os.path.join(outDir,"total-conversion-build.user.js"), "mobile/assets/total-conversion-build.user.js")
+    shutil.copy(os.path.join(outDir,"total-conversion-build.user.js"), assetsDir)
     # copy the user location script into the mobile folder.
-    shutil.copy(os.path.join(outDir,"user-location.user.js"), "mobile/assets/user-location.user.js")
+    shutil.copy(os.path.join(outDir,"user-location.user.js"), assetsDir)
     # also copy plugins
     try:
-        shutil.rmtree("mobile/assets/plugins")
+        shutil.rmtree(os.path.join(assetsDir, 'plugins'))
     except:
         pass
-    shutil.copytree(os.path.join(outDir,"plugins"), "mobile/assets/plugins",
+    shutil.copytree(os.path.join(outDir,"plugins"), os.path.join(assetsDir, 'plugins'),
             # do not include desktop-only plugins to mobile assets
             ignore=shutil.ignore_patterns('*.meta.js',
             'force-https*', 'speech-search*', 'basemap-cloudmade*',
@@ -287,14 +289,16 @@ if buildMobile:
 
 
     if buildMobile != 'copyonly':
-        # now launch 'ant' to build the mobile project
-        retcode = os.system("ant %s -buildfile %s %s" % (antOptions, antBuildFile, buildMobile))
+        # now launch 'gradlew' to build the mobile project
+        buildAction = "assemble" + buildMobile.capitalize()
+        retcode = os.system("mobile/gradlew %s -b %s %s" % (gradleOptions, gradleBuildFile, buildAction))
 
         if retcode != 0:
-            print ("Error: mobile app failed to build. ant returned %d" % retcode)
-            exit(1) # ant may return 256, but python seems to allow only values <256
+            print ("Error: mobile app failed to build. gradlew returned %d" % retcode)
+            exit(retcode if retcode < 256 else 1) # python seems to allow only values <256
         else:
-            shutil.copy("mobile/bin/IITC_Mobile-%s.apk" % buildMobile, os.path.join(outDir,"IITC_Mobile-%s.apk" % buildMobile) )
+            apkFile = "IITC_Mobile-%s.apk" % buildMobile
+            shutil.copy(os.path.join(mobileDir, 'app', 'build', 'outputs', 'apk', apkFile), outDir)
 
 
 # run any postBuild commands
