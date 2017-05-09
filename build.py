@@ -17,6 +17,8 @@ try:
 except ImportError:
   import urllib.request as urllib2
 
+from subprocess import Popen
+
 # load settings file
 from buildsettings import buildSettings
 
@@ -59,8 +61,6 @@ dateTimeVersion = time.strftime('%Y%m%d.',utcTime) + time.strftime('%H%M%S',utcT
 resourceUrlBase = settings.get('resourceUrlBase')
 distUrlBase = settings.get('distUrlBase')
 buildMobile = settings.get('buildMobile')
-gradleOptions = settings.get('gradleOptions','')
-gradleBuildFile = settings.get('gradleBuildFile', 'mobile/build.gradle');
 
 
 # plugin wrapper code snippets. handled as macros, to ensure that
@@ -291,7 +291,9 @@ if buildMobile:
     if buildMobile != 'copyonly':
         # now launch 'gradlew' to build the mobile project
         buildAction = "assemble" + buildMobile.capitalize()
-        retcode = os.system("mobile/gradlew %s -b %s %s" % (gradleOptions, gradleBuildFile, buildAction))
+        child = Popen(['./gradlew', buildAction], cwd=mobileDir)
+        child.communicate()[0]
+        retcode = child.returncode
 
         if retcode != 0:
             print ("Error: mobile app failed to build. gradlew returned %d" % retcode)
